@@ -5,11 +5,9 @@ case "$1" in
     sudo shutdown -h now
     ;;
   *)
+    mplayer sound.mp3 &
     feh -F "$(dirname "$0")"/failed.sh \
     & p="$!"; sleep 1.2; kill "$p" \
-    & streamer -f jpeg -o "~/SOMEONE_TRIED_TO_ACCESS_YOUR_SCREEN_$(date)".jpeg
+    & streamer -f jpeg -o "SOMEONE_TRIED_TO_ACCESS_YOUR_SCREEN_$(date)".jpeg
     ;;
 esac
-
-
-
