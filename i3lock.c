@@ -513,8 +513,6 @@ static void handle_visibility_notify(xcb_connection_t *conn,
                                      xcb_visibility_notify_event_t *event) {
     if (event->state != XCB_VISIBILITY_UNOBSCURED) {
         uint32_t values[] = {XCB_STACK_MODE_ABOVE};
-        xcb_configure_window(conn, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
-        xcb_flush(conn);
     }
 }
 
@@ -726,62 +724,6 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                     process_xkb_event(event);
         }
 
-        free(event);
-    }
-}
-
-/*
- * This function is called from a fork()ed child and will raise the i3lock
- * window when the window is obscured, even when the main i3lock process is
- * blocked due to PAM.
- *
- */
-static void raise_loop(xcb_window_t window) {
-    xcb_connection_t *conn;
-    xcb_generic_event_t *event;
-    int screens;
-
-    if ((conn = xcb_connect(NULL, &screens)) == NULL ||
-        xcb_connection_has_error(conn))
-        errx(EXIT_FAILURE, "Cannot open display\n");
-
-    /* We need to know about the window being obscured or getting destroyed. */
-    xcb_change_window_attributes(conn, window, XCB_CW_EVENT_MASK,
-                                 (uint32_t[]){
-                                     XCB_EVENT_MASK_VISIBILITY_CHANGE |
-                                     XCB_EVENT_MASK_STRUCTURE_NOTIFY});
-    xcb_flush(conn);
-
-    DEBUG("Watching window 0x%08x\n", window);
-    while ((event = xcb_wait_for_event(conn)) != NULL) {
-        if (event->response_type == 0) {
-            xcb_generic_error_t *error = (xcb_generic_error_t *)event;
-            DEBUG("X11 Error received! sequence 0x%x, error_code = %d\n",
-                  error->sequence, error->error_code);
-            free(event);
-            continue;
-        }
-        /* Strip off the highest bit (set if the event is generated) */
-        int type = (event->response_type & 0x7F);
-        DEBUG("Read event of type %d\n", type);
-        switch (type) {
-            case XCB_VISIBILITY_NOTIFY:
-                handle_visibility_notify(conn, (xcb_visibility_notify_event_t *)event);
-                break;
-            case XCB_UNMAP_NOTIFY:
-                DEBUG("UnmapNotify for 0x%08x\n", (((xcb_unmap_notify_event_t *)event)->window));
-                if (((xcb_unmap_notify_event_t *)event)->window == window)
-                    exit(EXIT_SUCCESS);
-                break;
-            case XCB_DESTROY_NOTIFY:
-                DEBUG("DestroyNotify for 0x%08x\n", (((xcb_destroy_notify_event_t *)event)->window));
-                if (((xcb_destroy_notify_event_t *)event)->window == window)
-                    exit(EXIT_SUCCESS);
-                break;
-            default:
-                DEBUG("Unhandled event type %d\n", type);
-                break;
-        }
         free(event);
     }
 }
@@ -1008,7 +950,6 @@ int main(int argc, char *argv[]) {
         /* Child */
         close(xcb_get_file_descriptor(conn));
         maybe_close_sleep_lock_fd();
-        raise_loop(win);
         exit(EXIT_SUCCESS);
     }
 
