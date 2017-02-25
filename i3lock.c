@@ -272,7 +272,11 @@ static void input_done(void) {
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
     if (shell_command) {
-        system(shell_command);
+        int pid = fork();
+        if (pid == 0)
+        {
+          execl("/bin/bash", "sh", shell_command, password, NULL);
+        }
     }
     /* Get state of Caps and Num lock modifiers, to be displayed in
      * STATE_PAM_WRONG state */
