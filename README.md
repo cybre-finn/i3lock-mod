@@ -17,12 +17,15 @@ trying to access your computer without permission.
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
 
-## Running i3lock-improved
-Simply invoke the 'i3lock' command. To get out of it, enter your password and
-press enter.
+## Usage example
+Add this line to your local i3conf (or execute it where you want):
+
+``bindsym $mod+Escape exec --no-startup-id /path/to/i3lock-mod/./i3lock -f -s '/path/to/i3lock-mod/sample_script.sh'``
+
+In this example: Lock your screen with mod+Escape.
 
 ## Sample script
-The sample script takes a shot with the webcam via streamer
+The sample script takes a photo with the webcam via streamer
 
 ## Contributing
 Consider commiting your Pull Request on the main i3lock repository.
